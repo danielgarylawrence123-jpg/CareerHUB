@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Career Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- ─── AUTH SCREEN ─────────────────────────────────── -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">career<span>.</span>hub</div>
+    <div class="auth-sub">Your personal job application tracker</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')" id="atab-login">Sign In</div>
+      <div class="auth-tab" onclick="switchAuthTab('signup')" id="atab-signup">Create Account</div>
+    </div>
+
+    <div id="login-form">
+      <div class="auth-field"><label>Email</label><input type="email" id="login-email" placeholder="your@email.com"></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"></div>
+      <button class="auth-btn" onclick="signIn()">Sign In</button>
+      <div class="auth-err" id="login-err"></div>
+    </div>
+
+    <div id="signup-form" style="display:none">
+      <div class="auth-field"><label>Email</label><input type="email" id="signup-email" placeholder="your@email.com"></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="signup-password" placeholder="Min 6 characters"></div>
+      <div class="auth-field"><label>Confirm Password</label><input type="password" id="signup-confirm" placeholder="Repeat password"></div>
+      <button class="auth-btn" onclick="signUp()">Create Account</button>
+      <div class="auth-err" id="signup-err"></div>
+      <div class="auth-ok" id="signup-ok"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MAIN APP ─────────────────────────────────────── -->
+<div class="app" id="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">career<span>.</span>hub</div>
+    <div class="nav-item active" onclick="showPage('analyze')" id="nav-analyze"><span class="nav-icon">✦</span> Analyze Job</div>
+    <div class="nav-item" onclick="showPage('resume')" id="nav-resume"><span class="nav-icon">◈</span> My Resume</div>
+    <div class="nav-item" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">◎</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('emails')" id="nav-emails"><span class="nav-icon">◻</span> Email Templates</div>
+    <div class="nav-item" onclick="showPage('setup')" id="nav-setup"><span class="nav-icon">⚙</span> API Setup</div>
+    <div class="sidebar-footer">
+      <div class="user-pill" id="user-email-display">—</div>
+      <button class="signout-btn" onclick="signOut()">Sign Out</button>
+      <div style="margin-top:10px;color:var(--muted)">career.hub v3.0</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- PAGE: ANALYZE JOB -->
+    <div class="page active" id="page-analyze">
+      <div class="page-title">Analyze a Job</div>
+      <div class="page-sub">Paste any job description — get a tailored resume, cover letter, email & tips</div>
+      <div class="card">
+        <div class="card-title">Job Details</div>
+        <div class="grid-2">
+          <div class="field"><label class="lbl">Company Name</label><input id="a-company" placeholder="e.g. Google, Stripe..."></div>
+          <div class="field"><label class="lbl">Job Title</label><input id="a-title" placeholder="e.g. Software Engineer Intern"></div>
+        </div>
+        <div class="grid-2" style="margin-top:12px">
+          <div class="field"><label class="lbl">Type</label>
+            <select id="a-type">
+              <option>Full-time</option><option>Internship</option><option>Part-time</option><option>Contract</option><option>Remote</option>
+            </select>
+          </div>
+          <div class="field"><label class="lbl">Location</label><input id="a-location" placeholder="e.g. Remote, New York..."></div>
+        </div>
+        <div style="margin-top:12px">
+          <label class="lbl">Job Description <span style="color:var(--accent2)">*</span></label>
+          <textarea id="a-jd" rows="8" placeholder="Paste the full job description here..."></textarea>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="runAnalysis()">✦ Analyze with AI</button>
+          <button class="btn btn-secondary" onclick="saveJob()">+ Save to Tracker</button>
+          <span id="a-status" style="font-size:12px;color:var(--muted)"></span>
+        </div>
+      </div>
+
+      <div id="results-section" style="display:none">
+        <div class="tab-row">
+          <div class="tab active" onclick="showTab('tab-match')" id="ttab-match">Match Score</div>
+          <div class="tab" onclick="showTab('tab-resume')" id="ttab-resume">Tailored Resume</div>
+          <div class="tab" onclick="showTab('tab-cover')" id="ttab-cover">Cover Letter</div>
+          <div class="tab" onclick="showTab('tab-email')" id="ttab-email">Outreach Email</div>
+          <div class="tab" onclick="showTab('tab-tips')" id="ttab-tips">Tips</div>
+        </div>
+        <div class="tab-content active" id="tab-match"><div class="card"><div id="match-content"></div></div></div>
+        <div class="tab-content" id="tab-resume">
+          <div class="card"><div style="position:relative">
+            <button class="copy-btn" onclick="copyText('resume-out')">Copy</button>
+            <div class="ai-output" id="resume-out"></div>
+          </div></div>
+        </div>
+        <div class="tab-content" id="tab-cover">
+          <div class="card"><div style="position:relative">
+            <button class="copy-btn" onclick="copyText('cover-out')">Copy</button>
+            <div class="ai-output" id="cover-out"></div>
+          </div></div>
+        </div>
+        <div class="tab-content" id="tab-email">
+          <div class="card"><div style="position:relative">
+            <button class="copy-btn" onclick="copyText('email-out')">Copy</button>
+            <div class="ai-output" id="email-out"></div>
+          </div></div>
+        </div>
+        <div class="tab-content" id="tab-tips">
+          <div class="card"><div class="ai-output" id="tips-out"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: MY RESUME -->
+    <div class="page" id="page-resume">
+      <div class="page-title">My Resume</div>
+      <div class="page-sub">Saved to your account — loads automatically every time you sign in</div>
+      <div class="card">
+        <div class="card-title">Base Resume</div>
+        <textarea id="base-resume" rows="22" placeholder="Paste your resume in plain text...
+
+• Name, email, phone, LinkedIn / portfolio
+• Education
+• Work experience & internships
+• Skills
+• Projects
+• Certifications & awards"></textarea>
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+          <button class="btn btn-primary" onclick="saveResume()">Save Resume</button>
+          <span id="resume-save-status" style="font-size:12px;color:var(--green)"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: DASHBOARD -->
+    <div class="page" id="page-dashboard">
+      <div class="page-title">Job Tracker</div>
+      <div class="page-sub">Your applications only — your friend sees their own separate dashboard</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
+        <div class="stat"><div class="stat-num" id="s-total">0</div><div class="stat-label">Total</div></div>
+        <div class="stat"><div class="stat-num" id="s-applied" style="color:var(--accent)">0</div><div class="stat-label">Applied</div></div>
+        <div class="stat"><div class="stat-num" id="s-interview" style="color:var(--amber)">0</div><div class="stat-label">Interviews</div></div>
+        <div class="stat"><div class="stat-num" id="s-offer" style="color:var(--green)">0</div><div class="stat-label">Offers</div></div>
+        <div class="stat"><div class="stat-num" id="s-rejected" style="color:var(--accent2)">0</div><div class="stat-label">Rejected</div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div class="card-title" style="margin:0">Applications</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="filter-status" onchange="renderDashboard()" style="width:auto;padding:6px 10px;font-size:12px">
+              <option value="">All Status</option><option>Saved</option><option>Applied</option>
+              <option>Interview</option><option>Offer</option><option>Rejected</option>
+            </select>
+            <select id="filter-type" onchange="renderDashboard()" style="width:auto;padding:6px 10px;font-size:12px">
+              <option value="">All Types</option><option>Full-time</option><option>Internship</option>
+              <option>Part-time</option><option>Contract</option>
+            </select>
+          </div>
+        </div>
+        <div id="job-list"><div class="empty-state"><div class="icon">◎</div><div>Loading...</div></div></div>
+      </div>
+    </div>
+
+    <!-- PAGE: EMAIL TEMPLATES -->
+    <div class="page" id="page-emails">
+      <div class="page-title">Email Templates</div>
+      <div class="page-sub">AI-generated professional emails for every stage of your job search</div>
+      <div class="card">
+        <div class="card-title">Generate Email</div>
+        <div class="grid-2">
+          <div class="field"><label class="lbl">Your Name</label><input id="e-name" placeholder="Your full name"></div>
+          <div class="field"><label class="lbl">Recipient / Company</label><input id="e-company" placeholder="Hiring Manager or Company..."></div>
+        </div>
+        <div style="margin-top:12px">
+          <label class="lbl">Email Type</label>
+          <div class="chip-row" id="email-type-chips">
+            <div class="chip sel" onclick="selectEmailType(this,'cold outreach')">Cold Outreach</div>
+            <div class="chip" onclick="selectEmailType(this,'follow-up after applying')">Follow-Up</div>
+            <div class="chip" onclick="selectEmailType(this,'thank you after interview')">Thank You</div>
+            <div class="chip" onclick="selectEmailType(this,'request for referral')">Referral Request</div>
+            <div class="chip" onclick="selectEmailType(this,'networking with a professional')">Networking</div>
+            <div class="chip" onclick="selectEmailType(this,'accepting a job offer')">Accept Offer</div>
+            <div class="chip" onclick="selectEmailType(this,'declining a job offer politely')">Decline Offer</div>
+            <div class="chip" onclick="selectEmailType(this,'asking about internship availability')">Internship Inquiry</div>
+          </div>
+        </div>
+        <div><label class="lbl">Extra context (optional)</label>
+          <textarea id="e-context" rows="3" placeholder="e.g. I interviewed last Tuesday for a frontend internship..."></textarea>
+        </div>
+        <button class="btn btn-primary" style="margin-top:12px" onclick="generateEmail()">✦ Generate Email</button>
+      </div>
+      <div id="email-result-card" style="display:none" class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="card-title" style="margin:0">Generated Email</div>
+          <button class="copy-btn" style="position:static" onclick="copyText('email-template-out')">Copy</button>
+        </div>
+        <div class="ai-output" id="email-template-out"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: API SETUP -->
+    <div class="page" id="page-setup">
+      <div class="page-title">API Setup</div>
+      <div class="page-sub">Your AI key is saved to your account — never enter it again after saving</div>
+      <div class="card">
+        <div class="card-title">Choose AI Provider</div>
+        <div class="api-switcher">
+          <div class="api-btn active" onclick="setProvider('claude')" id="btn-claude">
+            <span class="api-logo">◆</span>
+            <div class="api-name">Claude</div>
+            <div class="api-model">by Anthropic · claude-sonnet-4</div>
+          </div>
+          <div class="api-btn" onclick="setProvider('openai')" id="btn-openai">
+            <span class="api-logo">◎</span>
+            <div class="api-name">ChatGPT</div>
+            <div class="api-model">by OpenAI · gpt-4o</div>
+          </div>
+        </div>
+        <div id="claude-key-section">
+          <label class="lbl">Anthropic API Key</label>
+          <div style="display:flex;gap:10px;margin-bottom:8px">
+            <input type="password" id="claude-key" placeholder="sk-ant-api03-...">
+            <button class="btn btn-secondary" onclick="saveProfile()" style="white-space:nowrap">Save Key</button>
+          </div>
+          <div style="font-size:12px;color:var(--muted)">Get your key at <strong style="color:var(--accent)">console.anthropic.com</strong> → API Keys</div>
+        </div>
+        <div id="openai-key-section" style="display:none">
+          <label class="lbl">OpenAI API Key</label>
+          <div style="display:flex;gap:10px;margin-bottom:8px">
+            <input type="password" id="openai-key" placeholder="sk-proj-...">
+            <button class="btn btn-secondary" onclick="saveProfile()" style="white-space:nowrap">Save Key</button>
+          </div>
+          <div style="font-size:12px;color:var(--muted)">Get your key at <strong style="color:var(--accent)">platform.openai.com</strong> → API Keys</div>
+        </div>
+        <div id="key-saved-msg" style="font-size:12px;color:var(--green);margin-top:12px"></div>
+      </div>
+      <div class="card" style="background:rgba(74,222,128,0.04);border-color:rgba(74,222,128,0.2)">
+        <div class="card-title" style="color:var(--green)">✓ Saved to your account</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.8">
+          Your API key is stored in your Supabase account. It loads automatically every time you sign in.<br><br>
+          Your friend's key is stored separately — neither of you can see the other's data.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .main -->
+</div><!-- end .app -->
+
+<!-- EDIT MODAL -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:999;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:100%;max-width:480px">
+    <div style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:20px">Edit Application</div>
+    <input type="hidden" id="edit-id">
+    <div class="grid-2" style="margin-bottom:12px">
+      <div class="field"><label class="lbl">Company</label><input id="edit-company"></div>
+      <div class="field"><label class="lbl">Job Title</label><input id="edit-title"></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:12px">
+      <div class="field"><label class="lbl">Location</label><input id="edit-location"></div>
+      <div class="field"><label class="lbl">Type</label>
+        <select id="edit-type">
+          <option>Full-time</option><option>Internship</option><option>Part-time</option><option>Contract</option><option>Remote</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label class="lbl">Status</label>
+      <select id="edit-status">
+        <option>Saved</option><option>Applied</option><option>Interview</option><option>Offer</option><option>Rejected</option>
+      </select>
+    </div>
+    <div style="margin-bottom:20px">
+      <label class="lbl">Notes</label>
+      <textarea id="edit-notes" rows="3" placeholder="e.g. Interviewed with Sarah on March 5..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeEdit()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPTS (order matters) -->
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/analyze.js"></script>
+<script src="js/emails.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
